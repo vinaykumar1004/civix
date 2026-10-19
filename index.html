@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Civic Sathi — Report a Problem</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800&family=JetBrains+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== Theme ===== */
+  :root {
+    --font: 'DM Sans', system-ui, -apple-system, sans-serif;
+    --mono: 'JetBrains Mono', monospace;
+    --radius: 14px;
+    --radius-sm: 10px;
+    --ease: cubic-bezier(0.22, 1, 0.36, 1);
+    --step1: #3b82f6;
+    --step2: #10b981;
+    --step3: #a855f7;
+    --step4: #f59e0b;
+  }
+
+  [data-theme="dark"] {
+    --bg: #0b0d10;
+    --bg2: #12151a;
+    --surface: #181b22;
+    --surface-hover: #1f2229;
+    --border: #262a33;
+    --border-hi: #3a3f4c;
+    --text: #e8eaed;
+    --text2: #9ca3af;
+    --text3: #555d6b;
+    --accent: #f59e0b;
+    --accent-hover: #d97706;
+    --accent-ink: #0f0f0f;
+    --ok: #34d399;
+    --bad: #f87171;
+    --cam-bg: #0a0c0f;
+    --glow: rgba(245,158,11,0.1);
+    --particle: rgba(255,255,255,0.35);
+    --line-c: rgba(255,255,255,0.06);
+    --hero-grad: linear-gradient(135deg, #0b0d10 0%, #141820 50%, #0e1118 100%);
+  }
+
+  [data-theme="light"] {
+    --bg: #f3f4f1;
+    --bg2: #eaebe6;
+    --surface: #ffffff;
+    --surface-hover: #f9faf7;
+    --border: #dcddd8;
+    --border-hi: #c4c5c0;
+    --text: #1a1a1a;
+    --text2: #6b7280;
+    --text3: #9ca3af;
+    --accent: #d97706;
+    --accent-hover: #b45309;
+    --accent-ink: #ffffff;
+    --ok: #059669;
+    --bad: #dc2626;
+    --cam-bg: #e5e5e0;
+    --glow: rgba(217,119,6,0.08);
+    --particle: rgba(0,0,0,0.18);
+    --line-c: rgba(0,0,0,0.04);
+    --hero-grad: linear-gradient(135deg, #f3f4f1 0%, #e8e9e4 50%, #f0f1ee 100%);
+  }
+
+  /* ===== Reset ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 400 15px/1.6 var(--font);
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+    transition: background 0.4s, color 0.3s;
+  }
+
+  /* ==========================================
+     SPLASH / INTRO SCREEN
+     ========================================== */
+  .splash {
+    position: fixed; inset: 0; z-index: 1000;
+    background: var(--hero-grad);
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    overflow: hidden;
+    transition: clip-path 0.9s var(--ease), opacity 0.5s 0.4s;
+    clip-path: inset(0 0 0 0);
+  }
+  .splash.exit {
+    clip-path: inset(0 0 100% 0);
+    opacity: 0;
+  }
+  .splash.gone { display: none; }
+
+  #splashCanvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+  }
+
+  .splash-content {
+    position: relative; z-index: 2;
+    text-align: center;
+    padding: 0 24px;
+  }
+
+  /* letter-by-letter title */
+  .splash-title {
+    font: 800 clamp(2.8rem, 8vw, 5.5rem)/1 var(--font);
+    letter-spacing: -2px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .splash-title .letter {
+    display: inline-block;
+    opacity: 0;
+    transform: translateY(40px) rotateX(60deg);
+    animation: letterIn 0.6s var(--ease) forwards;
+  }
+  .splash-title .space { width: 0.3em; display: inline-block; }
+  .splash-title .accent-letter { color: var(--accent); }
+
+  @keyframes letterIn {
+    to { opacity: 1; transform: translateY(0) rotateX(0); }
+  }
+
+  .splash-tagline {
+    font-size: clamp(0.85rem, 2.5vw, 1.15rem);
+    color: var(--text2);
+    margin-top: 12px;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: fadeUp 0.7s var(--ease) 1.2s forwards;
+  }
+
+  .splash-line {
+    width: 0;
+    height: 3px;
+    background: var(--accent);
+    border-radius: 4px;
+    margin: 24px auto 0;
+    animation: lineGrow 0.8s var(--ease) 1.6s forwards;
+  }
+
+  .splash-enter {
+    margin-top: 36px;
+    opacity: 0;
+    animation: fadeUp 0.5s var(--ease) 2.1s forwards;
+  }
+  .splash-enter button {
+    background: var(--accent);
+    color: var(--accent-ink);
+    border: none;
+    font: 700 0.9rem var(--font);
+    padding: 14px 36px;
+    border-radius: 50px;
+    cursor: pointer;
+    letter-spacing: 0.5px;
+    transition: transform 0.2s, box-shadow 0.3s;
+  }
+  .splash-enter button:hover {
+    transform: scale(1.04);
+    box-shadow: 0 6px 28px rgba(245,158,11,0.3);
+  }
+
+  @keyframes fadeUp {
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes lineGrow {
+    to { width: min(160px, 40vw); }
+  }
+
+  /* floating badge things on splash */
+  .float-badge {
+    position: absolute;
+    font: 600 0.7rem var(--font);
+    padding: 6px 14px;
+    border-radius: 50px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text2);
+    opacity: 0;
+    z-index: 2;
+    animation: floatIn 0.8s var(--ease) forwards;
+    white-space: nowrap;
+  }
+  .fb1 { top: 18%; left: 8%; animation-delay: 1.8s; }
+  .fb2 { top: 22%; right: 10%; animation-delay: 2.0s; }
+  .fb3 { bottom: 24%; left: 12%; animation-delay: 2.2s; }
+  .fb4 { bottom: 18%; right: 8%; animation-delay: 2.4s; }
+
+  @keyframes floatIn {
+    0% { opacity: 0; transform: scale(0.8) translateY(10px); }
+    100% { opacity: 0.7; transform: scale(1) translateY(0); }
+  }
+
+  @media (max-width: 600px) {
+    .float-badge { display: none; }
+  }
+
+  /* ==========================================
+     MAIN PAGE
+     ========================================== */
+  .page {
+    opacity: 0;
+    min-height: 100vh;
+  }
+  .page.visible {
+    opacity: 1;
+    transition: opacity 0.6s 0.1s var(--ease);
+  }
+
+  /* ===== Top Bar ===== */
+  .topbar {
+    width: 100%;
+    padding: 18px 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    position: sticky; top: 0; z-index: 50;
+    transition: background 0.3s, border-color 0.3s;
+  }
+  .topbar .logo {
+    font: 700 1.15rem var(--font);
+    letter-spacing: -0.4px;
+    color: var(--text);
+  }
+  .topbar .logo span { color: var(--accent); }
+
+  .topbar-right {
+    display: flex; align-items: center; gap: 10px;
+  }
+  .theme-btn {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 50px;
+    width: 40px; height: 40px;
+    display: grid; place-items: center;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.3s var(--ease);
+  }
+  .theme-btn:hover {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--glow);
+    transform: rotate(20deg);
+  }
+
+  /* ===== Hero Section ===== */
+  .hero {
+    width: 100%;
+    padding: 56px 32px 40px;
+    text-align: center;
+    background: var(--hero-grad);
+    border-bottom: 1px solid var(--border);
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 50%;
+    transform: translateX(-50%);
+    width: 80px; height: 3px;
+    background: var(--accent);
+    border-radius: 4px;
+  }
+  .hero h2 {
+    font-size: clamp(1.6rem, 4vw, 2.4rem);
+    font-weight: 800;
+    letter-spacing: -0.8px;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 10px;
+    opacity: 0; transform: translateY(20px);
+  }
+  .hero h2.show { animation: fadeUp 0.6s var(--ease) forwards; }
+  .hero h2 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero p {
+    max-width: 560px;
+    margin: 0 auto;
+    color: var(--text2);
+    font-size: 0.92rem;
+    line-height: 1.65;
+    opacity: 0; transform: translateY(16px);
+  }
+  .hero p.show { animation: fadeUp 0.5s var(--ease) 0.15s forwards; }
+
+  /* feature pills */
+  .hero-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 22px;
+    opacity: 0; transform: translateY(14px);
+  }
+  .hero-pills.show { animation: fadeUp 0.5s var(--ease) 0.3s forwards; }
+  .pill {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 50px;
+    border: 1px solid var(--border);
+    color: var(--text2);
+    background: var(--surface);
+  }
+  .pill.p1 { border-color: color-mix(in srgb, var(--step1) 40%, transparent); color: var(--step1); }
+  .pill.p2 { border-color: color-mix(in srgb, var(--step2) 40%, transparent); color: var(--step2); }
+  .pill.p3 { border-color: color-mix(in srgb, var(--step3) 40%, transparent); color: var(--step3); }
+  .pill.p4 { border-color: color-mix(in srgb, var(--step4) 40%, transparent); color: var(--step4); }
+
+  /* ===== Form Area ===== */
+  .form-area {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 36px 32px 80px;
+  }
+
+  /* grid: 2 cols on desktop */
+  .card-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  @media (min-width: 680px) {
+    .card-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    .card-grid .card-wide {
+      grid-column: 1 / -1;
+    }
+  }
+
+  /* ===== Cards ===== */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 22px;
+    position: relative;
+    transition: background 0.3s, border-color 0.3s, box-shadow 0.3s, transform 0.25s var(--ease);
+    opacity: 0; transform: translateY(28px);
+  }
+  .card.show {
+    opacity: 1; transform: translateY(0);
+    transition: opacity 0.55s var(--ease), transform 0.55s var(--ease), background 0.3s, border-color 0.3s, box-shadow 0.3s;
+  }
+  .card:hover {
+    border-color: var(--border-hi);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.07);
+    transform: translateY(-2px);
+  }
+
+  /* colored top stripe */
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 20px; right: 20px;
+    height: 3px;
+    border-radius: 0 0 4px 4px;
+    opacity: 0.7;
+  }
+  .card.s1::before { background: var(--step1); }
+  .card.s2::before { background: var(--step2); }
+  .card.s3::before { background: var(--step3); }
+  .card.s4::before { background: var(--step4); }
+
+  .card-head {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .step-num {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    display: grid; place-items: center;
+    font: 700 0.8rem var(--mono);
+    color: #fff;
+    flex-shrink: 0;
+  }
+  .s1 .step-num { background: var(--step1); box-shadow: 0 2px 10px rgba(59,130,246,0.3); }
+  .s2 .step-num { background: var(--step2); box-shadow: 0 2px 10px rgba(16,185,129,0.3); }
+  .s3 .step-num { background: var(--step3); box-shadow: 0 2px 10px rgba(168,85,247,0.3); }
+  .s4 .step-num { background: var(--step4); box-shadow: 0 2px 10px rgba(245,158,11,0.3); }
+
+  .card-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+    letter-spacing: -0.2px;
+  }
+  .card-label .opt {
+    font-weight: 400;
+    color: var(--text3);
+    font-size: 0.8rem;
+    margin-left: 4px;
+  }
+
+  /* ===== Camera ===== */
+  .cam {
+    position: relative;
+    background: var(--cam-bg);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    aspect-ratio: 4/3;
+    border: 1px solid var(--border);
+  }
+  .cam video, .cam img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .cam .empty-msg {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    color: var(--text3); font-size: 0.84rem; gap: 8px;
+  }
+  .cam .empty-msg .ico { font-size: 2.2rem; opacity: 0.4; }
+
+  /* ===== Buttons ===== */
+  button {
+    font: 600 0.86rem/1 var(--font);
+    border: 0;
+    border-radius: var(--radius-sm);
+    padding: 12px 18px;
+    cursor: pointer;
+    width: 100%;
+    transition: all 0.2s var(--ease);
+    position: relative;
+  }
+  button:active:not(:disabled) { transform: scale(0.97); }
+  button:disabled { opacity: 0.35; cursor: not-allowed; }
+  button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+  .btn-primary {
+    background: var(--accent);
+    color: var(--accent-ink);
+    font-weight: 700;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: var(--accent-hover);
+    box-shadow: 0 4px 18px rgba(245,158,11,0.28);
+  }
+
+  .btn-ghost {
+    background: var(--bg2);
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover:not(:disabled) {
+    border-color: var(--border-hi);
+    background: var(--surface-hover);
+  }
+
+  .btn-row {
+    display: flex; gap: 10px; margin-top: 12px;
+  }
+
+  /* ===== Submit ===== */
+  .submit-wrap {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 32px;
+    opacity: 0; transform: translateY(20px);
+  }
+  .submit-wrap.show {
+    opacity: 1; transform: translateY(0);
+    transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+  }
+  .submit-btn {
+    padding: 16px 24px;
+    font-size: 1rem;
+    font-weight: 800;
+    letter-spacing: 0.3px;
+    border-radius: var(--radius);
+  }
+
+  /* ===== Inputs ===== */
+  textarea, input[type=email] {
+    width: 100%;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font: 400 0.86rem/1.55 var(--font);
+    resize: vertical;
+    transition: border-color 0.3s, box-shadow 0.3s, background 0.3s;
+  }
+  textarea { min-height: 85px; }
+  textarea:focus, input[type=email]:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--glow);
+  }
+  input::placeholder, textarea::placeholder { color: var(--text3); }
+
+  select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    font: 400 0.86rem/1 var(--font);
+    transition: border-color 0.3s;
+  }
+  select:focus { outline: none; border-color: var(--accent); }
+  .btn-row select { flex: 0 0 42%; }
+
+  /* ===== Status ===== */
+  .status { font-size: 0.8rem; color: var(--text2); margin: 8px 0 0; line-height: 1.5; }
+  .status.ok { color: var(--ok); font-weight: 500; }
+  .status.bad { color: var(--bad); font-weight: 500; }
+  .hint { font-size: 0.78rem; color: var(--text3); margin-bottom: 10px; line-height: 1.5; }
+
+  /* ===== Recording ===== */
+  button.rec {
+    background: var(--bad); color: #fff; border: 0;
+    animation: pulse 1.8s ease infinite;
+  }
+  @keyframes pulse {
+    0%,100% { box-shadow: 0 0 0 0 rgba(248,113,113,0.35); }
+    50% { box-shadow: 0 0 0 8px rgba(248,113,113,0); }
+  }
+
+  /* ===== Success ===== */
+  .done-card {
+    max-width: 500px;
+    margin: 40px auto;
+    text-align: center;
+    padding: 40px 28px;
+    border-top: 3px solid var(--ok);
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+  }
+  .done-card .done-ico { font-size: 3rem; margin-bottom: 10px; display: block; }
+  .done-card .done-title { font-size: 1.2rem; font-weight: 800; color: var(--ok); margin-bottom: 4px; }
+  .done-card .cid { font: 700 1.6rem var(--mono); color: var(--accent); letter-spacing: 1px; margin: 12px 0; }
+  .done-card .btn-ghost { margin-top: 18px; max-width: 240px; margin-left: auto; margin-right: auto; }
+
+  /* ===== Footer ===== */
+  .footer {
+    text-align: center;
+    font-size: 0.72rem;
+    color: var(--text3);
+    padding: 24px 16px 40px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  [hidden] { display: none !important; }
+
+  @media (max-width: 500px) {
+    .topbar { padding: 14px 18px; }
+    .hero { padding: 40px 20px 32px; }
+    .form-area { padding: 24px 18px 60px; }
+    .submit-wrap { padding: 0 18px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==========================================
+     SPLASH SCREEN
+     ========================================== -->
+<div class="splash" id="splash">
+  <canvas id="splashCanvas"></canvas>
+  <div class="splash-content">
+    <div class="splash-title" id="splashTitle"></div>
+    <div class="splash-tagline">Your city. Your voice. Your change.</div>
+    <div class="splash-line"></div>
+    <div class="splash-enter" id="splashEnter">
+      <button onclick="closeSplash()">Get Started →</button>
+    </div>
+  </div>
+  <div class="float-badge fb1">📷 Live Photo</div>
+  <div class="float-badge fb2">📍 GPS Location</div>
+  <div class="float-badge fb3">🎙 Voice Input</div>
+  <div class="float-badge fb4">⚡ Instant Report</div>
+</div>
+
+<!-- ==========================================
+     MAIN PAGE
+     ========================================== -->
+<div class="page" id="page">
+
+  <!-- Top Bar -->
+  <div class="topbar">
+    <div class="logo">Civic <span>Sathi</span></div>
+    <div class="topbar-right">
+      <button class="theme-btn" id="themeToggle" aria-label="Toggle theme">🌙</button>
+    </div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <h2 id="heroTitle">See a problem? <em>Report it.</em></h2>
+    <p id="heroDesc">Snap a live photo of garbage, broken roads, water leaks, or any civic issue — we'll route your complaint to the right authority automatically.</p>
+    <div class="hero-pills" id="heroPills">
+      <span class="pill p1">📷 Camera</span>
+      <span class="pill p2">📍 GPS</span>
+      <span class="pill p3">📧 Email Updates</span>
+      <span class="pill p4">🎙 Voice</span>
+    </div>
+  </div>
+
+  <!-- Form -->
+  <form id="form" autocomplete="off">
+    <div class="form-area">
+      <div class="card-grid">
+
+        <!-- 1. Camera -->
+        <div class="card card-wide s1" data-step>
+          <div class="card-head">
+            <div class="step-num">1</div>
+            <div class="card-label">Live Photo</div>
+          </div>
+          <div class="cam">
+            <video id="video" playsinline muted hidden></video>
+            <img id="preview" alt="Captured photo" hidden>
+            <div class="empty-msg" id="empty">
+              <span class="ico">📷</span>
+              Camera is off
+            </div>
+          </div>
+          <canvas id="canvas" hidden></canvas>
+          <div class="btn-row">
+            <button type="button" class="btn-ghost" id="openCam">Open Camera</button>
+            <button type="button" class="btn-primary" id="snap" hidden>Capture</button>
+            <button type="button" class="btn-ghost" id="retake" hidden>Retake</button>
+          </div>
+          <p class="status" id="camStatus"></p>
+          <label id="fallback" hidden class="status">Camera didn't open? Use your phone camera:
+            <input type="file" id="fallbackInput" accept="image/*" capture="environment">
+          </label>
+        </div>
+
+        <!-- 2. Location -->
+        <div class="card s2" data-step>
+          <div class="card-head">
+            <div class="step-num">2</div>
+            <div class="card-label">Location</div>
+          </div>
+          <p class="status" id="gpsStatus">Finding your location…</p>
+          <div class="btn-row">
+            <button type="button" class="btn-ghost" id="retryGps">Retry Location</button>
+          </div>
+        </div>
+
+        <!-- 3. Email -->
+        <div class="card s3" data-step>
+          <div class="card-head">
+            <div class="step-num">3</div>
+            <div class="card-label">Your Email</div>
+          </div>
+          <p class="hint">We send approval status here — never shared publicly.</p>
+          <input type="email" id="email" required autocomplete="email" placeholder="you@example.com">
+        </div>
+
+        <!-- 4. Description -->
+        <div class="card card-wide s4" data-step>
+          <div class="card-head">
+            <div class="step-num">4</div>
+            <div class="card-label">Describe the Issue <span class="opt">(optional)</span></div>
+          </div>
+          <textarea id="desc" placeholder="e.g. Garbage piling up for 5 days near the park entrance"></textarea>
+          <div class="btn-row">
+            <select id="lang" aria-label="Voice language">
+              <option value="en-IN">English</option>
+              <option value="hi-IN">हिन्दी (Hindi)</option>
+            </select>
+            <button type="button" class="btn-ghost" id="mic">🎙 Speak</button>
+          </div>
+          <p class="status" id="micStatus"></p>
+        </div>
+      </div>
+    </div>
+
+    <div class="submit-wrap" id="submitWrap">
+      <button type="submit" class="btn-primary submit-btn" id="submit" disabled>Submit Complaint →</button>
+      <p class="status" id="msg" role="status"></p>
+    </div>
+  </form>
+
+  <!-- Success -->
+  <div class="done-card" id="done" hidden>
+    <span class="done-ico">✅</span>
+    <div class="done-title">Complaint Registered</div>
+    <div class="cid" id="cid"></div>
+    <p class="status">Save this ID — you'll receive status updates against it.</p>
+    <button type="button" class="btn-ghost" onclick="location.reload()">File Another Complaint</button>
+  </div>
+
+  <div class="footer">Civic Sathi — Built for the people</div>
+</div>
+
+<script>
+/* ==========================================
+   SPLASH PARTICLES (Canvas)
+   ========================================== */
+(function(){
+  const canvas = document.getElementById('splashCanvas');
+  const ctx = canvas.getContext('2d');
+  let w, h, particles = [], raf;
+
+  function resize(){
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resize);
+  resize();
+
+  class Dot {
+    constructor(){
+      this.x = Math.random() * w;
+      this.y = Math.random() * h;
+      this.r = Math.random() * 2 + 0.5;
+      this.vx = (Math.random() - 0.5) * 0.6;
+      this.vy = (Math.random() - 0.5) * 0.6;
+    }
+    update(){
+      this.x += this.vx;
+      this.y += this.vy;
+      if(this.x < 0) this.x = w;
+      if(this.x > w) this.x = 0;
+      if(this.y < 0) this.y = h;
+      if(this.y > h) this.y = 0;
+    }
+    draw(){
+      ctx.beginPath();
+      ctx.arc(this.x, this.y, this.r, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  const count = Math.min(80, Math.floor(w * h / 12000));
+  for(let i = 0; i < count; i++) particles.push(new Dot());
+
+  function getColor(){
+    return getComputedStyle(document.documentElement).getPropertyValue('--particle').trim();
+  }
+  function getLine(){
+    return getComputedStyle(document.documentElement).getPropertyValue('--line-c').trim();
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = getColor();
+    const lineClr = getLine();
+    const maxDist = 120;
+
+    for(let i = 0; i < particles.length; i++){
+      particles[i].update();
+      particles[i].draw();
+      for(let j = i + 1; j < particles.length; j++){
+        const dx = particles[i].x - particles[j].x;
+        const dy = particles[i].y - particles[j].y;
+        const d = Math.sqrt(dx*dx + dy*dy);
+        if(d < maxDist){
+          ctx.strokeStyle = lineClr;
+          ctx.lineWidth = 0.6;
+          ctx.beginPath();
+          ctx.moveTo(particles[i].x, particles[i].y);
+          ctx.lineTo(particles[j].x, particles[j].y);
+          ctx.stroke();
+        }
+      }
+    }
+    raf = requestAnimationFrame(draw);
+  }
+  draw();
+
+  // stop animation when splash is gone
+  window._stopParticles = () => cancelAnimationFrame(raf);
+})();
+
+/* ===== Letter-by-letter splash title ===== */
+(function(){
+  const text = "CIVIC SATHI";
+  const el = document.getElementById('splashTitle');
+  text.split('').forEach((ch, i) => {
+    if(ch === ' '){
+      el.innerHTML += '<span class="space"></span>';
+    } else {
+      const isAccent = i >= 6; // "SATHI" part
+      el.innerHTML += `<span class="letter ${isAccent ? 'accent-letter' : ''}" style="animation-delay:${0.3 + i * 0.07}s">${ch}</span>`;
+    }
+  });
+})();
+
+/* ===== Close splash ===== */
+function closeSplash(){
+  const splash = document.getElementById('splash');
+  const page = document.getElementById('page');
+  splash.classList.add('exit');
+  setTimeout(() => {
+    splash.classList.add('gone');
+    window._stopParticles();
+    page.classList.add('visible');
+    animatePageIn();
+  }, 900);
+}
+
+/* ===== Page-in animations ===== */
+function animatePageIn(){
+  // hero elements
+  setTimeout(() => document.getElementById('heroTitle').classList.add('show'), 100);
+  setTimeout(() => document.getElementById('heroDesc').classList.add('show'), 100);
+  setTimeout(() => document.getElementById('heroPills').classList.add('show'), 100);
+
+  // cards stagger
+  const cards = document.querySelectorAll('[data-step]');
+  cards.forEach((c, i) => {
+    setTimeout(() => c.classList.add('show'), 350 + i * 140);
+  });
+
+  // submit
+  setTimeout(() => document.getElementById('submitWrap').classList.add('show'), 350 + cards.length * 140 + 100);
+}
+
+/* ===== Theme Toggle ===== */
+(function(){
+  const html = document.documentElement;
+  const btn = document.getElementById('themeToggle');
+  const saved = localStorage.getItem('civic-theme');
+  if(saved){
+    html.setAttribute('data-theme', saved);
+    btn.textContent = saved === 'light' ? '☀️' : '🌙';
+  }
+  btn.addEventListener('click', () => {
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    btn.textContent = next === 'light' ? '☀️' : '🌙';
+    localStorage.setItem('civic-theme', next);
+  });
+})();
+
+/* ===== Settings ===== */
+const WEBHOOK_URL = "https://hack-karo-05.app.n8n.cloud/webhook/complaint";
+
+/* ===== State ===== */
+let photoBlob = null, coords = null, stream = null, sending = false;
+const $ = id => document.getElementById(id);
+
+/* ===== Camera ===== */
+async function openCamera(){
+  $("camStatus").textContent = "";
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:"environment"}}, audio:false});
+    const v = $("video"); v.srcObject = stream; await v.play();
+    v.hidden = false; $("preview").hidden = true; $("empty").hidden = true;
+    $("snap").hidden = false; $("openCam").hidden = true; $("retake").hidden = true;
+  }catch(e){
+    $("camStatus").textContent = "Allow camera access (camera icon in the address bar). If it still fails, use the option below.";
+    $("camStatus").className = "status bad";
+    $("fallback").hidden = false;
+  }
+}
+function stopCamera(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
+
+function snap(){
+  const v = $("video"), c = $("canvas");
+  const max = 1280, s = Math.min(1, max / Math.max(v.videoWidth, v.videoHeight));
+  c.width = Math.round(v.videoWidth*s); c.height = Math.round(v.videoHeight*s);
+  c.getContext("2d").drawImage(v,0,0,c.width,c.height);
+  c.toBlob(b=>{ setPhoto(b); stopCamera(); }, "image/jpeg", 0.8);
+}
+function setPhoto(blob){
+  photoBlob = blob;
+  const p = $("preview"); p.src = URL.createObjectURL(blob); p.hidden = false;
+  $("video").hidden = true; $("empty").hidden = true;
+  $("snap").hidden = true; $("retake").hidden = false; $("openCam").hidden = true;
+  $("camStatus").textContent = "Photo ready."; $("camStatus").className = "status ok";
+  refresh();
+}
+function retake(){ photoBlob = null; $("preview").hidden = true; refresh(); openCamera(); }
+
+/* ===== GPS ===== */
+function getGps(){
+  const el = $("gpsStatus"); el.className = "status"; el.textContent = "Finding your location…";
+  if(!navigator.geolocation){ el.textContent = "GPS is not supported on this device."; el.className="status bad"; return; }
+  navigator.geolocation.getCurrentPosition(pos=>{
+    coords = {lat:pos.coords.latitude, lng:pos.coords.longitude, acc:Math.round(pos.coords.accuracy)};
+    el.textContent = `Found: ${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)} (±${coords.acc} m)`;
+    el.className = "status ok"; refresh();
+  }, err=>{
+    coords = null;
+    el.textContent = "Could not get location. Allow location access in the browser and retry.";
+    el.className = "status bad"; refresh();
+  }, {enableHighAccuracy:true, timeout:15000, maximumAge:0});
+}
+
+function refresh(){ $("submit").disabled = !(photoBlob && coords && $("email").value.trim() && $("email").validity.valid) || sending; }
+
+/* ===== Voice ===== */
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null, listening = false;
+function micMsg(t, cls){ $("micStatus").textContent = t; $("micStatus").className = "status " + (cls||""); }
+function toggleMic(){
+  if(listening){ rec.stop(); return; }
+  rec = new SR();
+  rec.lang = $("lang").value; rec.interimResults = true; rec.continuous = true;
+  const base = $("desc").value.trim();
+  rec.onstart = () => { listening = true; $("mic").textContent = "⏹ Stop"; $("mic").className = "rec"; micMsg("Listening… speak now.", "ok"); };
+  rec.onresult = e => {
+    let t = ""; for(let i=0;i<e.results.length;i++) t += e.results[i][0].transcript;
+    $("desc").value = (base ? base + " " : "") + t; refresh();
+  };
+  rec.onerror = e => micMsg("Voice failed (" + e.error + "). Allow microphone access or type instead.", "bad");
+  rec.onend = () => { listening = false; $("mic").textContent = "🎙 Speak"; $("mic").className = "btn-ghost"; if(!$("micStatus").classList.contains("bad")) micMsg(""); };
+  rec.start();
+}
+if(!SR){ $("mic").disabled = true; $("lang").disabled = true; micMsg("Voice input works in Chrome. Please type instead."); }
+else { $("mic").onclick = toggleMic; }
+$("desc").addEventListener("input", refresh);
+$("email").addEventListener("input", refresh);
+
+/* ===== Submit ===== */
+async function submit(e){
+  e.preventDefault();
+  if(sending || !photoBlob || !coords) return;
+  sending = true; refresh();
+  const id = "C" + Date.now().toString(36).toUpperCase();
+  const fd = new FormData();
+  fd.append("id", id);
+  fd.append("photo", photoBlob, id + ".jpg");
+  fd.append("lat", coords.lat);
+  fd.append("long", coords.lng);
+  fd.append("accuracy", coords.acc);
+  fd.append("description", $("desc").value.trim());
+  fd.append("email", $("email").value.trim());
+  fd.append("language", $("lang").value);
+  fd.append("timestamp", new Date().toISOString());
+  $("msg").textContent = "Sending…"; $("msg").className = "status";
+  try{
+    const r = await fetch(WEBHOOK_URL, {method:"POST", body:fd});
+    if(!r.ok) throw new Error("HTTP " + r.status);
+    $("form").hidden = true; $("done").hidden = false; $("cid").textContent = id;
+  }catch(err){
+    sending = false; refresh();
+    $("msg").textContent = "Failed (" + err.message + "). Check your internet and try again.";
+    $("msg").className = "status bad";
+  }
+}
+
+/* ===== Wire up ===== */
+$("openCam").onclick = openCamera;
+$("snap").onclick = snap;
+$("retake").onclick = retake;
+$("retryGps").onclick = getGps;
+$("fallbackInput").onchange = e => { if(e.target.files[0]) setPhoto(e.target.files[0]); };
+$("form").addEventListener("submit", submit);
+getGps();
+</script>
+</body>
+</html>
